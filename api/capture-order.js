@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 module.exports = async (req, res) => {
-  // CORS Headers
+  // Set CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -25,13 +25,13 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // 1. Get PayPal Access Token
+    // 1. Get PayPal Live Access Token
     const auth = Buffer.from(
       `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
     ).toString('base64');
 
     const tokenResponse = await axios({
-      url: 'https://api-m.sandbox.paypal.com/v1/oauth2/token',
+      url: 'https://api-m.paypal.com/v1/oauth2/token',
       method: 'post',
       headers: {
         'Accept': 'application/json',
@@ -44,9 +44,9 @@ module.exports = async (req, res) => {
 
     const accessToken = tokenResponse.data.access_token;
 
-    // 2. Capture PayPal Order
+    // 2. Capture PayPal Live Order
     const captureResponse = await axios({
-      url: `https://api-m.sandbox.paypal.com/v2/checkout/orders/${orderID}/capture`,
+      url: `https://api-m.paypal.com/v2/checkout/orders/${orderID}/capture`,
       method: 'post',
       headers: {
         'Content-Type': 'application/json',
@@ -62,7 +62,7 @@ module.exports = async (req, res) => {
         orderNumber: orderID,
         customerName: paypalDetails.payer.name.given_name + ' ' + paypalDetails.payer.name.surname,
         customerEmail: paypalDetails.payer.email_address,
-        customerAddress: '123 Test Street, Las Vegas, NV 89101',
+        customerAddress: '123 Delivery Address, Las Vegas, NV 89101',
         customerPhoneNumber: '7025550199',
         orderItem: [
           {
