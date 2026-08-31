@@ -1,24 +1,15 @@
 const axios = require('axios');
 
-async function getPayPalAccessToken() {
-  const auth = Buffer.from(
-    `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
-  ).toString('base64');
-
-  const response = await axios.post(
-    'https://api-m.paypal.com/v1/oauth2/token',
-    'grant_type=client_credentials',
-    {
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    }
-  );
-  return response.data.access_token;
-}
-
 module.exports = async (req, res) => {
+  // CORS Headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
@@ -27,62 +18,84 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { paypalOrderID, orderDetails } = req.body;
+  const { orderID } = req.body;
+
+  if (!orderID) {
+    return res.status(400).json({ error: 'Missing orderID in request body' });
+  }
 
   try {
-    const accessToken = await getPayPalAccessToken();
-    const captureResponse = await axios.post(
-      `https://api-m.paypal.com/v2/checkout/orders/${paypalOrderID}/capture`,
-      {},
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        }
+    // 1. Get PayPal Access Token
+    const auth = Buffer.from(
+      `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
+    ).toString('base64');
+
+    const tokenResponse = await axios({
+      url: 'https://api-m.sandbox.paypal.com/v1/oauth2/token',
+      method: 'post',
+      headers: {
+        'Accept': 'application/json',
+        'Accept-Language': 'en_US',
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      data: 'grant_type=client_credentials'
+    });
+
+    const accessToken = tokenResponse.data.access_token;
+
+    // 2. Capture PayPal Order
+    const captureResponse = await axios({
+      url: `https://api-m.sandbox.paypal.com/v2/checkout/orders/${orderID}/capture`,
+      method: 'post',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
       }
-    );
+    });
 
-    if (captureResponse.data.status !== 'COMPLETED') {
-      return res.status(400).json({ success: false, error: 'Payment capture failed.' });
-    }
+    const paypalDetails = captureResponse.data;
 
-    const shipdayPayload = {
-      orderNumber: `LMD-${paypalOrderID.slice(-6).toUpperCase()}`,
-      customerName: orderDetails.customerName,
-      customerPhoneNumber: orderDetails.customerPhone,
-      customerAddress: orderDetails.dropoffAddress,
-      restaurantName: "Last Minute Delivery HQ",
-      restaurantAddress: orderDetails.pickupAddress,
-      restaurantPhoneNumber: orderDetails.customerPhone,
-      totalOrderCost: parseFloat(orderDetails.totalAmount),
-      deliveryFee: parseFloat(orderDetails.deliveryFee),
-      tips: parseFloat(orderDetails.tip || 0),
-      paymentMethod: "paypal",
-      deliveryInstruction: orderDetails.notes || "Priority Last Minute Delivery"
-    };
+    // 3. Dispatch Delivery to Shipday
+    if (paypalDetails.status === 'COMPLETED') {
+      const shipdayOrder = {
+        orderNumber: orderID,
+        customerName: paypalDetails.payer.name.given_name + ' ' + paypalDetails.payer.name.surname,
+        customerEmail: paypalDetails.payer.email_address,
+        customerAddress: '123 Test Street, Las Vegas, NV 89101',
+        customerPhoneNumber: '7025550199',
+        orderItem: [
+          {
+            name: 'Last Minute Delivery Item',
+            unitPrice: 10.00,
+            quantity: 1
+          }
+        ]
+      };
 
-    const shipdayResponse = await axios.post(
-      'https://api.shipday.com/orders',
-      shipdayPayload,
-      {
+      await axios({
+        url: 'https://api.shipday.com/orders',
+        method: 'post',
         headers: {
           'Authorization': `Basic ${process.env.SHIPDAY_API_KEY}`,
           'Content-Type': 'application/json'
-        }
-      }
-    );
+        },
+        data: shipdayOrder
+      });
 
-    return res.status(200).json({
-      success: true,
-      shipdayOrderId: shipdayResponse.data.orderId,
-      trackingUrl: shipdayResponse.data.trackingLink || ''
-    });
-
-  } catch (err) {
-    console.error('Checkout Error:', err.response?.data || err.message);
+      return res.status(200).json({
+        status: 'COMPLETED',
+        success: true,
+        paypal: paypalDetails
+      });
+    } else {
+      return res.status(400).json({ error: 'PayPal payment was not completed' });
+    }
+  } catch (error) {
+    console.error('Backend Processing Error:', error.response ? error.response.data : error.message);
     return res.status(500).json({
-      success: false,
-      error: err.response?.data?.message || 'Failed to process order.'
+      error: 'Internal Server Error',
+      details: error.response ? error.response.data : error.message
     });
   }
 };

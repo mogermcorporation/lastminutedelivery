@@ -1,24 +1,84 @@
-onApprove: function(data, actions) {
-  return fetch('https://lastminutedelivery.vercel.app/api/paypal/capture-order', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      orderID: data.orderID
-    })
-  })
-  .then(function(response) {
-    return response.json();
-  })
-  .then(function(details) {
-    if (details.status === 'COMPLETED' || details.success) {
-      alert('Payment successful! Delivery dispatched via Shipday.');
-    } else {
-      alert('Payment capture failed. Check console for details.');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Last Minute Delivery Checkout</title>
+  <!-- Replace YOUR_SANDBOX_CLIENT_ID with your PayPal Sandbox Client ID -->
+  <script src="https://www.paypal.com/sdk/Aar7rS1cWkziq7W5Jb6RbejTBbZnSh-G9N6VDsKwnZPxyc6ZlfLW14xvGGHhDsAQrwWSDdLG_Y2PbXHo&currency=USD"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background-color: #f4f4f9;
     }
-  })
-  .catch(function(error) {
-    console.error('Error:', error);
-  });
-}
+    .checkout-card {
+      background: #ffffff;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      width: 320px;
+    }
+    h1 {
+      font-size: 20px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="checkout-card">
+    <h1>Last Minute Delivery</h1>
+    <div id="paypal-button-container"></div>
+  </div>
+
+  <script>
+    paypal.Buttons({
+      createOrder: function(data, actions) {
+        return actions.order.create({
+          purchase_units: [{
+            amount: {
+              value: '10.00'
+            }
+          }]
+        });
+      },
+      onApprove: function(data, actions) {
+        return fetch('https://lastminutedelivery.vercel.app/api/capture-order', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            orderID: data.orderID
+          })
+        })
+        .then(function(response) {
+          return response.json();
+        })
+        .then(function(details) {
+          if (details.status === 'COMPLETED' || details.success) {
+            alert('Payment successful! Delivery dispatched via Shipday.');
+            console.log('Order Details:', details);
+          } else {
+            alert('Payment capture failed. Check console for details.');
+            console.error('Capture Error:', details);
+          }
+        })
+        .catch(function(error) {
+          console.error('Network Error:', error);
+          alert('An error occurred while completing your payment.');
+        });
+      }
+    }).render('#paypal-button-container');
+  </script>
+
+</body>
+</html>
