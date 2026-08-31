@@ -6,8 +6,8 @@
   <title>Last Minute Delivery | Express Local Courier</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Replace YOUR_LIVE_PAYPAL_CLIENT_ID with your actual PayPal Client ID -->
-  <script src="https://www.paypal.com/sdk/js?client-id=BAAx0xZ88mT_O1YcpXVYErt0zdGYeqHiDt4YszrI4e5N34sTxa5FJvYOYo2w0pLDb6YIOC2YQIZF3Oyp14&currency=USD"></script>
+  <!-- PayPal SDK: Venmo Enabled & Pay Later Disabled -->
+  <script src="https://www.paypal.com/sdk/js?client-id=BAAx0xZ88mT_O1YcpXVYErt0zdGYeqHiDt4YszrI4e5N34sTxa5FJvYOYo2w0pLDb6YIOC2YQIZF3Oyp14&currency=USD&enable-funding=venmo&disable-funding=paylater"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
 
@@ -105,7 +105,7 @@
         />
       </div>
 
-      <!-- PayPal Buttons Container -->
+      <!-- Payment Buttons Container -->
       <div class="pt-2">
         <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">
           Complete Payment & Dispatch Driver
