@@ -1,0 +1,24 @@
+onApprove: function(data, actions) {
+  return fetch('https://lastminutedelivery.vercel.app/api/paypal/capture-order', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      orderID: data.orderID
+    })
+  })
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(details) {
+    if (details.status === 'COMPLETED' || details.success) {
+      alert('Payment successful! Delivery dispatched via Shipday.');
+    } else {
+      alert('Payment capture failed. Check console for details.');
+    }
+  })
+  .catch(function(error) {
+    console.error('Error:', error);
+  });
+}
