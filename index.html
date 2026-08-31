@@ -3,26 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Last Minute Delivery | Instant Local Courier</title>
+  <title>Last Minute Delivery | Express Local Courier</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Replace YOUR_LIVE_PAYPAL_CLIENT_ID with your actual PayPal Live Client ID -->
+  <!-- Replace YOUR_LIVE_PAYPAL_CLIENT_ID with your actual PayPal Client ID -->
   <script src="https://www.paypal.com/sdk/js?client-id=BAAx0xZ88mT_O1YcpXVYErt0zdGYeqHiDt4YszrI4e5N34sTxa5FJvYOYo2w0pLDb6YIOC2YQIZF3Oyp14&currency=USD"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
 
-  <div class="w-full max-w-md bg-slate-800 border border-slate-700/60 rounded-2xl shadow-2xl overflow-hidden">
+  <div class="w-full max-w-md bg-slate-800 border border-slate-700/60 rounded-2xl shadow-2xl overflow-hidden my-8">
     
-    <!-- Header Banner -->
+    <!-- Header Banner with JPG Logo -->
     <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 text-center relative">
-      <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md mb-3 border border-white/20 text-2xl">
-        ⚡
-      </div>
+      <img src="logo.jpg" alt="Last Minute Delivery Logo" class="w-28 h-28 mx-auto rounded-2xl shadow-xl border-2 border-white/20 mb-3 object-cover">
       <h1 class="text-2xl font-extrabold tracking-tight text-white">Last Minute Delivery</h1>
-      <p class="text-blue-100 text-xs mt-1 font-medium">Fast, reliable local courier dispatch</p>
+      <p class="text-blue-100 text-xs mt-1 font-medium">Las Vegas Express Courier Dispatch</p>
     </div>
 
-    <!-- Order Summary Badge -->
+    <!-- Order Fee Summary -->
     <div class="px-6 pt-5 pb-2">
       <div class="bg-slate-900/60 border border-slate-700/50 rounded-xl p-3.5 flex items-center justify-between">
         <div class="flex items-center space-x-3">
@@ -36,7 +34,7 @@
       </div>
     </div>
 
-    <!-- Delivery Details Form -->
+    <!-- Delivery Form -->
     <div class="p-6 space-y-4">
       
       <div id="error-message" class="hidden bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold p-3 rounded-lg text-center">
@@ -70,6 +68,19 @@
       </div>
 
       <div>
+        <label for="pickupAddress" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+          Pickup Address
+        </label>
+        <input 
+          type="text" 
+          id="pickupAddress" 
+          placeholder="e.g. 3570 S Las Vegas Blvd, Las Vegas, NV 89109" 
+          class="w-full bg-slate-900/90 border border-slate-700 text-slate-100 text-sm rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-500"
+          required
+        />
+      </div>
+
+      <div>
         <label for="streetAddress" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
           Drop-Off Address
         </label>
@@ -82,7 +93,19 @@
         />
       </div>
 
-      <!-- Payment Section -->
+      <div>
+        <label for="deliveryTime" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+          Requested Delivery Time
+        </label>
+        <input 
+          type="datetime-local" 
+          id="deliveryTime" 
+          class="w-full bg-slate-900/90 border border-slate-700 text-slate-100 text-sm rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-slate-300"
+          required
+        />
+      </div>
+
+      <!-- PayPal Buttons Container -->
       <div class="pt-2">
         <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">
           Complete Payment & Dispatch Driver
@@ -112,11 +135,12 @@
       onClick: function(data, actions) {
         var name = document.getElementById('fullName').value.trim();
         var phone = document.getElementById('phoneNumber').value.trim();
-        var address = document.getElementById('streetAddress').value.trim();
+        var pickup = document.getElementById('pickupAddress').value.trim();
+        var dropoff = document.getElementById('streetAddress').value.trim();
+        var time = document.getElementById('deliveryTime').value.trim();
 
-        if (!name || !phone || !address) {
-          var errDiv = document.getElementById('error-message');
-          errDiv.classList.remove('hidden');
+        if (!name || !phone || !pickup || !dropoff || !time) {
+          document.getElementById('error-message').classList.remove('hidden');
           return actions.reject();
         } else {
           document.getElementById('error-message').classList.add('hidden');
@@ -137,7 +161,9 @@
           orderID: data.orderID,
           customerName: document.getElementById('fullName').value.trim(),
           customerPhone: document.getElementById('phoneNumber').value.trim(),
-          customerAddress: document.getElementById('streetAddress').value.trim()
+          pickupAddress: document.getElementById('pickupAddress').value.trim(),
+          customerAddress: document.getElementById('streetAddress').value.trim(),
+          deliveryTime: document.getElementById('deliveryTime').value.trim()
         };
 
         return fetch('https://lastminutedelivery.vercel.app/api/capture-order', {
