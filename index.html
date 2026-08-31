@@ -3,100 +3,123 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Last Minute Delivery Checkout</title>
-  <!-- Replace YOUR_LIVE_PAYPAL_CLIENT_ID with your Live Client ID -->
+  <title>Last Minute Delivery | Instant Local Courier</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Replace YOUR_LIVE_PAYPAL_CLIENT_ID with your actual PayPal Live Client ID -->
   <script src="https://www.paypal.com/sdk/js?client-id=BAAx0xZ88mT_O1YcpXVYErt0zdGYeqHiDt4YszrI4e5N34sTxa5FJvYOYo2w0pLDb6YIOC2YQIZF3Oyp14&currency=USD"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      margin: 0;
-      background-color: #f4f4f9;
-      padding: 20px;
-    }
-    .checkout-card {
-      background: #ffffff;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      width: 100%;
-      max-width: 400px;
-    }
-    h1 {
-      font-size: 20px;
-      margin-bottom: 20px;
-      color: #333;
-      text-align: center;
-    }
-    .form-group {
-      margin-bottom: 15px;
-      text-align: left;
-    }
-    label {
-      display: block;
-      font-size: 13px;
-      font-weight: bold;
-      margin-bottom: 5px;
-      color: #555;
-    }
-    input {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      box-sizing: border-box;
-      font-size: 14px;
-    }
-    #error-message {
-      color: #d9534f;
-      font-size: 13px;
-      margin-bottom: 15px;
-      display: none;
-      text-align: center;
-    }
-  </style>
 </head>
-<body>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
 
-  <div class="checkout-card">
-    <h1>Last Minute Delivery</h1>
+  <div class="w-full max-w-md bg-slate-800 border border-slate-700/60 rounded-2xl shadow-2xl overflow-hidden">
     
-    <div id="error-message">Please fill in all delivery details before paying.</div>
-
-    <div class="form-group">
-      <label for="fullName">Full Name</label>
-      <input type="text" id="fullName" placeholder="Jane Doe" required>
+    <!-- Header Banner -->
+    <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 text-center relative">
+      <div class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/10 backdrop-blur-md mb-3 border border-white/20 text-2xl">
+        ⚡
+      </div>
+      <h1 class="text-2xl font-extrabold tracking-tight text-white">Last Minute Delivery</h1>
+      <p class="text-blue-100 text-xs mt-1 font-medium">Fast, reliable local courier dispatch</p>
     </div>
 
-    <div class="form-group">
-      <label for="phoneNumber">Phone Number</label>
-      <input type="tel" id="phoneNumber" placeholder="7025550199" required>
+    <!-- Order Summary Badge -->
+    <div class="px-6 pt-5 pb-2">
+      <div class="bg-slate-900/60 border border-slate-700/50 rounded-xl p-3.5 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
+          <div>
+            <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Service Fee</p>
+            <p class="text-sm font-bold text-slate-200">Express Local Delivery</p>
+          </div>
+        </div>
+        <span class="text-lg font-black text-emerald-400">$10.00</span>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label for="streetAddress">Delivery Address</label>
-      <input type="text" id="streetAddress" placeholder="123 Main St, Las Vegas, NV 89101" required>
+    <!-- Delivery Details Form -->
+    <div class="p-6 space-y-4">
+      
+      <div id="error-message" class="hidden bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold p-3 rounded-lg text-center">
+        ⚠️ Please complete all fields before proceeding to payment.
+      </div>
+
+      <div>
+        <label for="fullName" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+          Full Name
+        </label>
+        <input 
+          type="text" 
+          id="fullName" 
+          placeholder="e.g. Jane Doe" 
+          class="w-full bg-slate-900/90 border border-slate-700 text-slate-100 text-sm rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-500"
+          required
+        />
+      </div>
+
+      <div>
+        <label for="phoneNumber" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+          Phone Number
+        </label>
+        <input 
+          type="tel" 
+          id="phoneNumber" 
+          placeholder="e.g. (702) 555-0199" 
+          class="w-full bg-slate-900/90 border border-slate-700 text-slate-100 text-sm rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-500"
+          required
+        />
+      </div>
+
+      <div>
+        <label for="streetAddress" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+          Drop-Off Address
+        </label>
+        <input 
+          type="text" 
+          id="streetAddress" 
+          placeholder="e.g. 123 Main St, Las Vegas, NV 89101" 
+          class="w-full bg-slate-900/90 border border-slate-700 text-slate-100 text-sm rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-500"
+          required
+        />
+      </div>
+
+      <!-- Payment Section -->
+      <div class="pt-2">
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">
+          Complete Payment & Dispatch Driver
+        </label>
+        <div id="paypal-button-container" class="min-h-[150px]"></div>
+      </div>
+
     </div>
 
-    <div id="paypal-button-container"></div>
+    <!-- Footer -->
+    <div class="bg-slate-900/40 border-t border-slate-700/40 p-3 text-center">
+      <p class="text-[11px] text-slate-500 font-medium">
+        🔒 Encrypted Checkout • On-Demand Local Delivery
+      </p>
+    </div>
+
   </div>
 
   <script>
     paypal.Buttons({
+      style: {
+        layout: 'vertical',
+        color: 'gold',
+        shape: 'rect',
+        label: 'pay'
+      },
       onClick: function(data, actions) {
         var name = document.getElementById('fullName').value.trim();
         var phone = document.getElementById('phoneNumber').value.trim();
         var address = document.getElementById('streetAddress').value.trim();
 
         if (!name || !phone || !address) {
-          document.getElementById('error-message').style.display = 'block';
+          var errDiv = document.getElementById('error-message');
+          errDiv.classList.remove('hidden');
           return actions.reject();
         } else {
-          document.getElementById('error-message').style.display = 'none';
+          document.getElementById('error-message').classList.add('hidden');
           return actions.resolve();
         }
       },
