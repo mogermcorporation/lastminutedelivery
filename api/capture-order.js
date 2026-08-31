@@ -1,7 +1,6 @@
 const axios = require('axios');
 
 module.exports = async (req, res) => {
-  // Set CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -18,14 +17,14 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { orderID } = req.body;
+  const { orderID, customerName, customerPhone, customerAddress } = req.body;
 
   if (!orderID) {
     return res.status(400).json({ error: 'Missing orderID in request body' });
   }
 
   try {
-    // 1. Get PayPal Live Access Token
+    // 1. Obtain PayPal Access Token
     const auth = Buffer.from(
       `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
     ).toString('base64');
@@ -44,7 +43,7 @@ module.exports = async (req, res) => {
 
     const accessToken = tokenResponse.data.access_token;
 
-    // 2. Capture PayPal Live Order
+    // 2. Capture PayPal Order
     const captureResponse = await axios({
       url: `https://api-m.paypal.com/v2/checkout/orders/${orderID}/capture`,
       method: 'post',
@@ -56,14 +55,14 @@ module.exports = async (req, res) => {
 
     const paypalDetails = captureResponse.data;
 
-    // 3. Dispatch Delivery to Shipday
+    // 3. Forward Dynamic Delivery Address to Shipday
     if (paypalDetails.status === 'COMPLETED') {
       const shipdayOrder = {
         orderNumber: orderID,
-        customerName: paypalDetails.payer.name.given_name + ' ' + paypalDetails.payer.name.surname,
+        customerName: customerName || (paypalDetails.payer.name.given_name + ' ' + paypalDetails.payer.name.surname),
         customerEmail: paypalDetails.payer.email_address,
-        customerAddress: '123 Delivery Address, Las Vegas, NV 89101',
-        customerPhoneNumber: '7025550199',
+        customerAddress: customerAddress || 'No Address Provided',
+        customerPhoneNumber: customerPhone || '0000000000',
         orderItem: [
           {
             name: 'Last Minute Delivery Item',
