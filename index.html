@@ -5,8 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Last Minute Delivery - Express Courier Dispatch</title>
   
-  <!-- PayPal SDK (Replace YOUR_PAYPAL_CLIENT_ID with your live/sandbox Client ID) -->
+  <!-- PayPal SDK -->
   <script src="https://www.paypal.com/sdk/js?client-id=BAAx0xZ88mT_O1YcpXVYErt0zdGYeqHiDt4YszrI4e5N34sTxa5FJvYOYo2w0pLDb6YIOC2YQIZF3Oyp14&enable-funding=venmo&disable-funding=paylater&currency=USD"></script>
+
+  <!-- Supabase JS SDK (Free User Profiles & Order History) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Mapbox GL & Geocoder (Free Address Autocomplete & Distance Routing) -->
+  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet" />
+  <script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.min.js"></script>
+  <link rel="stylesheet" href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v5.0.0/mapbox-gl-geocoder.css" type="text/css">
 
   <style>
     * {
@@ -36,12 +45,10 @@
       box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
     }
 
-    /* HEADER STYLING */
     .header {
       background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
       padding: 32px 20px;
       text-align: center;
-      position: relative;
     }
 
     .logo-container {
@@ -69,7 +76,6 @@
       font-size: 1.6rem;
       font-weight: 800;
       color: #ffffff;
-      letter-spacing: -0.02em;
       margin-bottom: 4px;
     }
 
@@ -83,7 +89,6 @@
       padding: 28px 24px;
     }
 
-    /* SECTION CARD BOXES */
     .form-section {
       background: #181b27;
       border: 1px solid #252a3d;
@@ -114,7 +119,6 @@
       font-weight: 800;
     }
 
-    /* SERVICE FEE CARD */
     .fee-card {
       display: flex;
       justify-content: space-between;
@@ -158,13 +162,8 @@
       color: #10b981;
     }
 
-    /* INPUT FIELDS */
     .form-group {
       margin-bottom: 14px;
-    }
-
-    .form-group:last-child {
-      margin-bottom: 0;
     }
 
     .form-group label {
@@ -188,22 +187,22 @@
       color: #ffffff;
       font-size: 0.9rem;
       outline: none;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      transition: border-color 0.2s ease;
     }
 
-    .form-group input:focus,
-    .form-group select:focus,
-    .form-group textarea:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    .mapboxgl-ctrl-geocoder {
+      width: 100% !important;
+      max-width: none !important;
+      background-color: #0f1118 !important;
+      border: 1px solid #262b3e !important;
+      border-radius: 8px !important;
+      box-shadow: none !important;
     }
 
-    .form-group textarea {
-      resize: vertical;
-      min-height: 72px;
+    .mapboxgl-ctrl-geocoder--input {
+      color: #ffffff !important;
     }
 
-    /* TERMS & CHECKBOX */
     .checkbox-group {
       display: flex;
       align-items: flex-start;
@@ -220,18 +219,15 @@
       width: 16px;
       height: 16px;
       accent-color: #3b82f6;
-      cursor: pointer;
     }
 
     .checkbox-group label {
       font-size: 0.82rem;
       color: #cbd5e1;
       line-height: 1.4;
-      cursor: pointer;
       text-transform: none;
     }
 
-    /* CHECKOUT TITLE */
     .checkout-title {
       text-align: center;
       font-size: 0.75rem;
@@ -251,17 +247,12 @@
       font-size: 0.75rem;
       color: #64748b;
       margin-top: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
     }
   </style>
 </head>
 <body>
 
   <div class="card">
-    <!-- HEADER -->
     <div class="header">
       <div class="logo-container">
         <img src="logo.jpeg" alt="Last Minute Delivery Logo" />
@@ -270,10 +261,9 @@
       <p>Las Vegas Express Courier Dispatch</p>
     </div>
 
-    <!-- FORM BODY -->
     <div class="form-body">
       
-      <!-- PRICING & TIER SELECTION -->
+      <!-- STEP 1: PRICING -->
       <div class="form-section">
         <div class="section-title">
           <span class="step-badge">1</span> Package Pricing Tier
@@ -281,7 +271,7 @@
 
         <div class="form-group">
           <label for="package-size">Select Package Size</label>
-          <select id="package-size" onchange="updateCalculatedFee()">
+          <select id="package-size" onchange="recalculatePrice()">
             <option value="15.95">Small (Envelope / Small Box under 10 lbs) - $15.95</option>
             <option value="25.95">Medium (Medium Box / Multi-item up to 35 lbs) - $25.95</option>
             <option value="35.95">Large (Heavy / Oversized up to 70 lbs) - $35.95</option>
@@ -291,7 +281,7 @@
         <div class="fee-card">
           <div>
             <div class="fee-label-title"><span class="dot"></span> ESTIMATED FEE</div>
-            <div class="fee-label-sub" id="fee-description-label">Express Local Delivery (First 3 mi included)</div>
+            <div class="fee-label-sub" id="fee-description-label">Express Local Delivery (<span id="distance-display">0.0</span> mi)</div>
           </div>
           <div class="fee-amount" id="calculated-fee-display">$15.95</div>
         </div>
@@ -299,7 +289,7 @@
         <input type="hidden" id="paypal-amount-input" value="15.95" />
       </div>
 
-      <!-- SECTION 2: PICKUP DETAILS -->
+      <!-- STEP 2: PICKUP DETAILS -->
       <div class="form-section">
         <div class="section-title">
           <span class="step-badge">2</span> 📍 Pick-Up Location & Contact
@@ -316,8 +306,14 @@
         </div>
 
         <div class="form-group">
-          <label for="pickup-address">Pickup Address & Suite / Unit #</label>
-          <input type="text" id="pickup-address" placeholder="e.g. 3570 S Las Vegas Blvd, Ste 100, Las Vegas, NV" required />
+          <label>Pickup Address (Autocomplete)</label>
+          <div id="geocoder-pickup"></div>
+          <input type="hidden" id="pickup-address" />
+        </div>
+
+        <div class="form-group">
+          <label for="pickup-suite">Suite / Unit / Gate Code</label>
+          <input type="text" id="pickup-suite" placeholder="e.g. Ste 100 / Gate #1234" />
         </div>
 
         <div class="form-group">
@@ -334,7 +330,7 @@
         </div>
       </div>
 
-      <!-- SECTION 3: DROP-OFF DETAILS -->
+      <!-- STEP 3: DROP-OFF DETAILS -->
       <div class="form-section">
         <div class="section-title">
           <span class="step-badge">3</span> 🏁 Drop-Off Location & Contact
@@ -351,8 +347,14 @@
         </div>
 
         <div class="form-group">
-          <label for="dropoff-address">Drop-Off Address & Suite / Unit #</label>
-          <input type="text" id="dropoff-address" placeholder="e.g. 123 Main St, Apt 4B, Las Vegas, NV 89101" required />
+          <label>Drop-Off Address (Autocomplete)</label>
+          <div id="geocoder-dropoff"></div>
+          <input type="hidden" id="dropoff-address" />
+        </div>
+
+        <div class="form-group">
+          <label for="dropoff-suite">Suite / Apt / Unit #</label>
+          <input type="text" id="dropoff-suite" placeholder="e.g. Apt 4B" />
         </div>
 
         <div class="form-group">
@@ -361,20 +363,20 @@
         </div>
       </div>
 
-      <!-- SECTION 4: PACKAGE DETAILS & NOTES -->
+      <!-- STEP 4: PACKAGE INFO -->
       <div class="form-section">
         <div class="section-title">
-          <span class="step-badge">4</span> 📦 Package Info & Special Instructions
+          <span class="step-badge">4</span> 📦 Package Info & Instructions
         </div>
 
         <div class="form-group">
           <label for="package-description">Package Contents Description</label>
-          <input type="text" id="package-description" placeholder="e.g. Legal documents, keys, auto spare part" required />
+          <input type="text" id="package-description" placeholder="e.g. Legal documents, keys, spare auto part" required />
         </div>
 
         <div class="form-group">
-          <label for="delivery-notes">Gate Codes, Entry Instructions, or Special Care</label>
-          <textarea id="delivery-notes" placeholder="e.g. Gate code #1234, leave package with front desk reception, call driver upon arrival..."></textarea>
+          <label for="delivery-notes">Special Instructions</label>
+          <textarea id="delivery-notes" placeholder="e.g. Leave with reception, ask for Sarah..."></textarea>
         </div>
       </div>
 
@@ -388,8 +390,6 @@
 
       <!-- CHECKOUT CONTAINER -->
       <div class="checkout-title">Complete Payment & Dispatch Driver</div>
-      
-      <!-- PAYPAL & VENMO BUTTON CONTAINER -->
       <div id="paypal-button-container"></div>
 
       <div class="footer-note">
@@ -399,51 +399,99 @@
     </div>
   </div>
 
-  <!-- SCRIPT LOGIC -->
   <script>
+    // CONFIGURATION KEYS (Replace with your actual keys)
+    const MAPBOX_TOKEN = 'YOUR_MAPBOX_ACCESS_TOKEN';
+    const TELEGRAM_BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN';
+    const TELEGRAM_CHAT_ID = 'YOUR_TELEGRAM_CHAT_ID';
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+
+    // Initialize Supabase Client
+    const supabase = (SUPABASE_URL !== 'YOUR_SUPABASE_URL') ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+    // Pricing Vars
     const BASE_MILES = 3.0;
     const EXTRA_PER_MILE_RATE = 1.25;
-    let estimatedDistanceMiles = 3.0;
+    let pickupCoords = null;
+    let dropoffCoords = null;
+    let currentDistanceMiles = 0.0;
 
-    function calculateTotalFee(basePrice, totalMiles) {
-      let finalPrice = basePrice;
-      if (totalMiles > BASE_MILES) {
-        const extraMiles = totalMiles - BASE_MILES;
-        finalPrice += extraMiles * EXTRA_PER_MILE_RATE;
+    // Initialize Mapbox Geocoders
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+
+    const geocoderPickup = new MapboxGeocoder({
+      accessToken: mapboxgl.accessToken,
+      placeholder: 'Search pickup address...',
+      proximity: { longitude: -115.1398, latitude: 36.1699 } // Las Vegas centered
+    });
+
+    const geocoderDropoff = new MapboxGeocoder({
+      accessToken: mapboxgl.accessToken,
+      placeholder: 'Search drop-off address...',
+      proximity: { longitude: -115.1398, latitude: 36.1699 }
+    });
+
+    geocoderPickup.addTo('#geocoder-pickup');
+    geocoderDropoff.addTo('#geocoder-dropoff');
+
+    geocoderPickup.on('result', (e) => {
+      pickupCoords = e.result.center;
+      document.getElementById('pickup-address').value = e.result.place_name;
+      calculateRouteDistance();
+    });
+
+    geocoderDropoff.on('result', (e) => {
+      dropoffCoords = e.result.center;
+      document.getElementById('dropoff-address').value = e.result.place_name;
+      calculateRouteDistance();
+    });
+
+    // Dynamic Distance Calculation via Mapbox Directions API
+    async function calculateRouteDistance() {
+      if (!pickupCoords || !dropoffCoords) return;
+
+      const query = await fetch(
+        `https://api.mapbox.com/directions/v5/mapbox/driving/${pickupCoords[0]},${pickupCoords[1]};${dropoffCoords[0]},${dropoffCoords[1]}?access_token=${MAPBOX_TOKEN}`
+      );
+      const json = await query.json();
+      if (json.routes && json.routes.length > 0) {
+        const meters = json.routes[0].distance;
+        currentDistanceMiles = parseFloat((meters * 0.000621371).toFixed(1));
+        document.getElementById('distance-display').innerText = currentDistanceMiles;
+        recalculatePrice();
       }
-      return finalPrice.toFixed(2);
     }
 
-    function updateCalculatedFee() {
+    function recalculatePrice() {
       const basePrice = parseFloat(document.getElementById('package-size').value);
-      const totalAmount = calculateTotalFee(basePrice, estimatedDistanceMiles);
-      
-      document.getElementById('calculated-fee-display').innerText = `$${totalAmount}`;
-      document.getElementById('paypal-amount-input').value = totalAmount;
+      let totalAmount = basePrice;
+
+      if (currentDistanceMiles > BASE_MILES) {
+        const extraMiles = currentDistanceMiles - BASE_MILES;
+        totalAmount += extraMiles * EXTRA_PER_MILE_RATE;
+      }
+
+      const finalPrice = totalAmount.toFixed(2);
+      document.getElementById('calculated-fee-display').innerText = `$${finalPrice}`;
+      document.getElementById('paypal-amount-input').value = finalPrice;
     }
 
+    // PayPal Buttons Implementation
     paypal.Buttons({
-      style: {
-        layout: 'vertical',
-        color:  'gold',
-        shape:  'rect',
-        label:  'paypal'
-      },
+      style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
 
       onInit: function(data, actions) {
         actions.disable();
-        document.getElementById('terms-agree').addEventListener('change', function(event) {
-          if (event.target.checked) {
-            actions.enable();
-          } else {
-            actions.disable();
-          }
+        document.getElementById('terms-agree').addEventListener('change', function(e) {
+          if (e.target.checked) actions.enable();
+          else actions.disable();
         });
       },
 
       onClick: function() {
         if (!document.getElementById('terms-agree').checked) {
-          alert("Please check the confirmation box agreeing to prohibited items policy before checking out.");
+          alert("Please check the confirmation box agreeing to prohibited items policy.");
         }
       },
 
@@ -455,24 +503,39 @@
 
         return actions.order.create({
           purchase_units: [{
-            amount: {
-              currency_code: 'USD',
-              value: currentTotal
-            },
+            amount: { currency_code: 'USD', value: currentTotal },
             description: `Delivery: ${pkgDesc} (${pickupName} -> ${dropoffName})`
           }]
         });
       },
 
       onApprove: function(data, actions) {
-        return actions.order.capture().then(function(details) {
-          alert('Payment Successful! Dispatching courier for ' + details.payer.name.given_name);
-        });
-      },
+        return actions.order.capture().then(async function(details) {
+          const totalPaid = document.getElementById('paypal-amount-input').value;
+          const pickupName = document.getElementById('pickup-name').value;
+          const pickupAddr = document.getElementById('pickup-address').value;
+          const dropoffName = document.getElementById('dropoff-name').value;
+          const dropoffAddr = document.getElementById('dropoff-address').value;
 
-      onError: function(err) {
-        console.error('PayPal Checkout Error:', err);
-        alert('Payment process encountered an issue. Please try again.');
+          // Free Telegram Bot Webhook Notification
+          if (TELEGRAM_BOT_TOKEN !== 'YOUR_TELEGRAM_BOT_TOKEN') {
+            const alertMsg = `🚨 NEW DELIVERY ORDER!\n💰 Total: $${totalPaid}\n📍 Pickup: ${pickupName} (${pickupAddr})\n🏁 Dropoff: ${dropoffName} (${dropoffAddr})`;
+            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage?chat_id=${TELEGRAM_CHAT_ID}&text=${encodeURIComponent(alertMsg)}`);
+          }
+
+          // Save Order to Free Supabase Database
+          if (supabase) {
+            await supabase.from('orders').insert([{
+              customer_name: details.payer.name.given_name,
+              amount: totalPaid,
+              pickup_address: pickupAddr,
+              dropoff_address: dropoffAddr,
+              status: 'Paid / Pending Dispatch'
+            }]);
+          }
+
+          alert('Payment Successful! Courier dispatched for ' + details.payer.name.given_name);
+        });
       }
     }).render('#paypal-button-container');
   </script>
