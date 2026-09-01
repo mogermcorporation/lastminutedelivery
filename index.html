@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Last Minute Delivery - Express Courier Dispatch</title>  
 
-  <!-- PayPal SDK (Replace YOUR_PAYPAL_CLIENT_ID with your actual Sandbox/Live Client ID) -->
   <script src="https://www.paypal.com/sdk/js?client-id=BAAeIt0tSR2v42sFNCMRHBq71zhCqSbw_WPoBOZNd3YpOMfvMmAE6q6lpS8RdoxTfhc1B5m2-Fs5zwWurs&enable-funding=venmo&disable-funding=paylater&currency=USD"></script>
 
-  <!-- Supabase JS SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -20,7 +18,7 @@
     }
 
     body {
-      background-color: #0b0c10;
+      background-color: #0b0c10 !important;
       color: #e0e6ed;
       display: flex;
       justify-content: center;
@@ -271,7 +269,6 @@
 
     <div class="form-body">
       
-      <!-- STEP 1: PRICING -->
       <div class="form-section">
         <div class="section-title">
           <span class="step-badge">1</span> Package Pricing Tier
@@ -297,7 +294,6 @@
         <input type="hidden" id="paypal-amount-input" value="15.95" />
       </div>
 
-      <!-- STEP 2: PICKUP DETAILS -->
       <div class="form-section">
         <div class="section-title">
           <span class="step-badge">2</span> 📍 Pick-Up Location & Contact
@@ -338,7 +334,6 @@
         </div>
       </div>
 
-      <!-- STEP 3: DROP-OFF DETAILS -->
       <div class="form-section">
         <div class="section-title">
           <span class="step-badge">3</span> 🏁 Drop-Off Location & Contact
@@ -371,7 +366,6 @@
         </div>
       </div>
 
-      <!-- STEP 4: PACKAGE INFO -->
       <div class="form-section">
         <div class="section-title">
           <span class="step-badge">4</span> 📦 Package Info & Instructions
@@ -388,7 +382,6 @@
         </div>
       </div>
 
-      <!-- PROHIBITED ITEMS CHECKBOX -->
       <div class="checkbox-group">
         <input type="checkbox" id="terms-agree" required />
         <label for="terms-agree">
@@ -396,7 +389,6 @@
         </label>
       </div>
 
-      <!-- CHECKOUT CONTAINER -->
       <div class="checkout-title">Complete Payment & Dispatch Driver</div>
       <div id="paypal-button-container"></div>
 
@@ -408,7 +400,7 @@
   </div>
 
   <script>
-    // Free OpenStreetMap / Nominatim Autocomplete Engine (No API Key Required)
+    // Address Autocomplete Engine (OpenStreetMap / Nominatim)
     let debounceTimer;
 
     function searchAddress(inputId, resultsId) {
@@ -448,7 +440,7 @@
       document.getElementById('paypal-amount-input').value = finalPrice;
     }
 
-    // Safely Initialize PayPal Buttons
+    // PayPal Checkout & Shipday Dispatch Handlers
     if (typeof paypal !== 'undefined') {
       paypal.Buttons({
         style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
@@ -482,14 +474,53 @@
         },
 
         onApprove: function(data, actions) {
-          return actions.order.capture().then(function(details) {
-            alert('Payment Successful! Courier dispatched for ' + details.payer.name.given_name);
+          return actions.order.capture().then(async function(details) {
+            const capture = details.purchase_units[0].payments.captures[0];
+            const paymentStatus = capture.status;
+
+            const pickupAddress = document.getElementById('pickup-address').value + 
+              (document.getElementById('pickup-suite').value ? ' ' + document.getElementById('pickup-suite').value : '');
+            
+            const dropoffAddress = document.getElementById('dropoff-address').value + 
+              (document.getElementById('dropoff-suite').value ? ' ' + document.getElementById('dropoff-suite').value : '');
+
+            const orderPayload = {
+              orderId: details.id,
+              paymentStatus: paymentStatus,
+              pickup: {
+                name: document.getElementById('pickup-name').value,
+                phone: document.getElementById('pickup-phone').value,
+                address: pickupAddress
+              },
+              dropoff: {
+                name: document.getElementById('dropoff-name').value,
+                phone: document.getElementById('dropoff-phone').value,
+                address: dropoffAddress
+              },
+              packageInfo: {
+                description: document.getElementById('package-description').value,
+                notes: document.getElementById('delivery-notes').value
+              }
+            };
+
+            // Dispatch directly to Shipday Serverless API Route
+            try {
+              await fetch('/api/shipday', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderPayload)
+              });
+            } catch (err) {
+              console.error('Shipday API dispatch error:', err);
+            }
+
+            alert(`Payment Successful! Order #${details.id} processed for ${details.payer.name.given_name}.`);
           });
         }
       }).render('#paypal-button-container');
     } else {
       document.getElementById('paypal-button-container').innerHTML = 
-        '<p style="color:#ef4444; font-size:0.8rem; text-align:center;">⚠️ Add your Client ID to line 8 to enable live PayPal checkout.</p>';
+        '<p style="color:#ef4444; font-size:0.8rem; text-align:center;">⚠️ Add your Client ID on line 8 to enable live PayPal checkout.</p>';
     }
   </script>
 </body>
