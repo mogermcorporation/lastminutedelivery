@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Last Minute Delivery - Las Vegas Express Courier Dispatch</title>
   
-  <!-- PayPal SDK (Replace YOUR_PAYPAL_CLIENT_ID with your actual Client ID) -->
+  <!-- PayPal SDK -->
   <script src="https://www.paypal.com/sdk/js?client-id=BAAx0xZ88mT_O1YcpXVYErt0zdGYeqHiDt4YszrI4e5N34sTxa5FJvYOYo2w0pLDb6YIOC2YQIZF3Oyp14&enable-funding=venmo&disable-funding=paylater&currency=USD"></script>
 
   <style>
@@ -38,13 +38,13 @@
 
     .header {
       background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-      padding: 30px 20px;
+      padding: 28px 20px;
       text-align: center;
     }
 
     .logo-container {
-      width: 70px;
-      height: 70px;
+      width: 90px;
+      height: 90px;
       margin: 0 auto 12px;
       background: rgba(255, 255, 255, 0.15);
       backdrop-filter: blur(8px);
@@ -52,13 +52,15 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      overflow: hidden;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.3);
     }
 
     .logo-container img {
-      width: 45px;
-      height: 45px;
-      object-fit: contain;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .header h1 {
@@ -189,13 +191,8 @@
     <!-- HEADER -->
     <div class="header">
       <div class="logo-container">
-        <!-- SVG Icon fallback if logo image path isn't present -->
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="1" y="3" width="15" height="13"></rect>
-          <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
-          <circle cx="5.5" cy="18.5" r="2.5"></circle>
-          <circle cx="18.5" cy="18.5" r="2.5"></circle>
-        </svg>
+        <!-- JPEG LOGO -->
+        <img src="logo.jpeg" alt="Last Minute Delivery Logo" />
       </div>
       <h1>Last Minute Delivery</h1>
       <p>Las Vegas Express Courier Dispatch</p>
@@ -276,7 +273,7 @@
     // PRICING CONFIGURATION
     const BASE_MILES = 3.0;
     const EXTRA_PER_MILE_RATE = 1.25;
-    let estimatedDistanceMiles = 3.0; // Default base distance
+    let estimatedDistanceMiles = 3.0;
 
     function calculateTotalFee(basePrice, totalMiles) {
       let finalPrice = basePrice;
@@ -299,7 +296,7 @@
     paypal.Buttons({
       style: {
         layout: 'vertical',
-        color:  'gold',     // Gold container fixes text contrast for PayPal & Venmo
+        color:  'gold',
         shape:  'rect',
         label:  'paypal'
       },
@@ -316,7 +313,7 @@
               value: currentTotal
             },
             description: `Last Minute Delivery for ${fullName}`,
-            custom_id: notes.substring(0, 127) // Securely pass delivery instructions
+            custom_id: notes.substring(0, 127)
           }]
         });
       },
