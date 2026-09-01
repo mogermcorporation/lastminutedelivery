@@ -16,7 +16,7 @@ export default async function handler(req, res) {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': `API-KEY ${process.env.Hrcn6bfSIb.NiYWSN3WQYDeGmWEN7aD}`
+        'Authorization': `API-KEY ${process.env.SHIPDAY_API_KEY}`
       },
       body: JSON.stringify({
         orderNumber: orderId,
