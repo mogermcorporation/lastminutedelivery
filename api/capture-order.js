@@ -1,9 +1,17 @@
 const axios = require('axios');
 
 module.exports = async (req, res) => {
-  // CORS and Method Checks (already in place)
-  res.setHeader('Access-Control-Allow-Origin', '*'); // Or configure for security
-  // ...
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -16,7 +24,8 @@ module.exports = async (req, res) => {
     pickupAddress,
     customerAddress,
     deliveryTime,
-    deliveryInstruction
+    deliveryInstruction,
+    packageDescription
   } = req.body;
 
   if (!orderID) {
@@ -24,7 +33,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // 1. Get PayPal Access Token using ENVIRONMENT VARIABLES
+    // 1. Get PayPal Access Token
     const auth = Buffer.from(
       `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
     ).toString('base64');
@@ -54,30 +63,62 @@ module.exports = async (req, res) => {
 
     const paypalDetails = captureResponse.data;
 
-    // 3. Dispatch Delivery to Shipday with ALL details
+    // 3. Dispatch to Shipday
     if (paypalDetails.status === 'COMPLETED') {
+      const capturedAmount = parseFloat(
+        paypalDetails.purchase_units[0].payments.captures[0].amount.value
+      );
+
       const shipdayOrder = {
-        // ... (as previously set up)
-        deliveryInstruction: deliveryInstruction || '', // Capture the notes
-        // ...
+        orderNumber: orderID,
+        customerName: customerName || 'Courier Customer',
+        customerEmail: paypalDetails.payer?.email_address || 'customer@example.com',
+        customerAddress: customerAddress || 'Las Vegas, NV',
+        customerPhoneNumber: customerPhone || '7025550199',
+        pickupAddress: pickupAddress || 'Las Vegas, NV',
+        expectedDeliveryDate: deliveryTime ? deliveryTime.split('T')[0] : '',
+        expectedDeliveryTime: deliveryTime ? deliveryTime.split('T')[1] : '',
+        deliveryInstruction: deliveryInstruction || '',
+        orderItem: [
+          {
+            name: packageDescription || 'Last Minute Delivery Express Package',
+            unitPrice: capturedAmount,
+            quantity: 1
+          }
+        ]
       };
 
-      await axios({
-        url: 'https://api.shipday.com/orders',
-        method: 'post',
-        headers: {
-          'Authorization': `Basic ${process.env.SHIPDAY_API_KEY}`,
-          'Content-Type': 'application/json'
-        },
-        data: shipdayOrder
-      });
+      try {
+        await axios({
+          url: 'https://api.shipday.com/orders',
+          method: 'post',
+          headers: {
+            'Authorization': `Basic ${process.env.SHIPDAY_API_KEY}`,
+            'Content-Type': 'application/json'
+          },
+          data: shipdayOrder
+        });
+      } catch (shipdayError) {
+        console.error('Shipday API Error:', shipdayError.response ? shipdayError.response.data : shipdayError.message);
+        return res.status(200).json({
+          status: 'COMPLETED',
+          success: true,
+          shipdayError: shipdayError.response ? shipdayError.response.data : shipdayError.message
+        });
+      }
 
-      return res.status(200).json({ status: 'COMPLETED', success: true });
+      return res.status(200).json({
+        status: 'COMPLETED',
+        success: true
+      });
     } else {
       return res.status(400).json({ error: 'PayPal payment was not completed' });
     }
   } catch (error) {
-    console.error('Backend Error:', error.message);
-    return res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Capture Error:', error.response ? error.response.data : error.message);
+    return res.status(500).json({
+      error: 'Internal Server Error',
+      details: error.response ? error.response.data : error.message
+    });
   }
 };

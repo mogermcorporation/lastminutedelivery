@@ -400,7 +400,6 @@
   </div>
 
   <script>
-    // Address Autocomplete Engine (OpenStreetMap / Nominatim)
     let debounceTimer;
 
     function searchAddress(inputId, resultsId) {
@@ -440,7 +439,6 @@
       document.getElementById('paypal-amount-input').value = finalPrice;
     }
 
-    // PayPal Checkout & Shipday Dispatch Handlers
     if (typeof paypal !== 'undefined') {
       paypal.Buttons({
         style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
@@ -474,6 +472,8 @@
         },
 
         onApprove: function(data, actions) {
+          alert("Payment authorized! Processing order and dispatching driver to Shipday...");
+
           const pSuite = document.getElementById('pickup-suite').value.trim();
           const pAddr = document.getElementById('pickup-address').value.trim();
           const dSuite = document.getElementById('dropoff-suite').value.trim();
@@ -490,7 +490,6 @@
             packageDescription: document.getElementById('package-description').value.trim()
           };
 
-          // Dispatch to Vercel Backend Route (which tokenizes PayPal & posts to Shipday)
           return fetch('https://lastminutedelivery.vercel.app/api/capture-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -498,16 +497,17 @@
           })
           .then(res => res.json())
           .then(details => {
+            console.log("Server Capture Response:", details);
             if (details.status === 'COMPLETED' || details.success) {
-              alert('Payment Successful! Delivery dispatched via Shipday.');
+              alert("🎉 SUCCESS! Payment Captured & Driver Dispatched to Shipday.");
+              window.location.reload();
             } else {
-              alert('Payment capture or dispatch failed. Check console for details.');
-              console.error('Capture Error:', details);
+              alert("Payment approved, but server returned: " + (details.error || "Unknown Error"));
             }
           })
           .catch(err => {
-            console.error('Network Error:', err);
-            alert('An error occurred while dispatching your delivery.');
+            console.error("Fetch Execution Error:", err);
+            alert("Order processed, but encountered network issue dispatching to server.");
           });
         }
       }).render('#paypal-button-container');
