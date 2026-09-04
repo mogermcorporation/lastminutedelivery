@@ -474,53 +474,43 @@
         },
 
         onApprove: function(data, actions) {
-          return actions.order.capture().then(async function(details) {
-            const capture = details.purchase_units[0].payments.captures[0];
-            const paymentStatus = capture.status;
+          const pSuite = document.getElementById('pickup-suite').value.trim();
+          const pAddr = document.getElementById('pickup-address').value.trim();
+          const dSuite = document.getElementById('dropoff-suite').value.trim();
+          const dAddr = document.getElementById('dropoff-address').value.trim();
 
-            const pickupAddress = document.getElementById('pickup-address').value + 
-              (document.getElementById('pickup-suite').value ? ' ' + document.getElementById('pickup-suite').value : '');
-            
-            const dropoffAddress = document.getElementById('dropoff-address').value + 
-              (document.getElementById('dropoff-suite').value ? ' ' + document.getElementById('dropoff-suite').value : '');
+          const orderPayload = {
+            orderID: data.orderID,
+            customerName: document.getElementById('dropoff-name').value.trim(),
+            customerPhone: document.getElementById('dropoff-phone').value.trim(),
+            pickupAddress: pSuite ? `${pAddr} (${pSuite})` : pAddr,
+            customerAddress: dSuite ? `${dAddr} (${dSuite})` : dAddr,
+            deliveryTime: document.getElementById('dropoff-time').value.trim(),
+            deliveryInstruction: document.getElementById('delivery-notes').value.trim(),
+            packageDescription: document.getElementById('package-description').value.trim()
+          };
 
-            const orderPayload = {
-              orderId: details.id,
-              paymentStatus: paymentStatus,
-              pickup: {
-                name: document.getElementById('pickup-name').value,
-                phone: document.getElementById('pickup-phone').value,
-                address: pickupAddress
-              },
-              dropoff: {
-                name: document.getElementById('dropoff-name').value,
-                phone: document.getElementById('dropoff-phone').value,
-                address: dropoffAddress
-              },
-              packageInfo: {
-                description: document.getElementById('package-description').value,
-                notes: document.getElementById('delivery-notes').value
-              }
-            };
-
-            // Dispatch directly to Shipday Serverless API Route
-            try {
-              await fetch('/api/shipday', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderPayload)
-              });
-            } catch (err) {
-              console.error('Shipday API dispatch error:', err);
+          // Dispatch to Vercel Backend Route (which tokenizes PayPal & posts to Shipday)
+          return fetch('https://lastminutedelivery.vercel.app/api/capture-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(orderPayload)
+          })
+          .then(res => res.json())
+          .then(details => {
+            if (details.status === 'COMPLETED' || details.success) {
+              alert('Payment Successful! Delivery dispatched via Shipday.');
+            } else {
+              alert('Payment capture or dispatch failed. Check console for details.');
+              console.error('Capture Error:', details);
             }
-
-            alert(`Payment Successful! Order #${details.id} processed for ${details.payer.name.given_name}.`);
+          })
+          .catch(err => {
+            console.error('Network Error:', err);
+            alert('An error occurred while dispatching your delivery.');
           });
         }
       }).render('#paypal-button-container');
-    } else {
-      document.getElementById('paypal-button-container').innerHTML = 
-        '<p style="color:#ef4444; font-size:0.8rem; text-align:center;">⚠️ Add your Client ID on line 8 to enable live PayPal checkout.</p>';
     }
   </script>
 </body>
