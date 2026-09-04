@@ -3,200 +3,525 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Last Minute Delivery | Express Local Courier</title>
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- PayPal SDK: Venmo Enabled & Pay Later Disabled -->
-  <!-- TO MAKE LIVE: Configure this script to use your actual client ID in a secure way -->
-  <script src="https://www.paypal.com/sdk/js?client-id=BAAeIt0tSR2v42sFNCMRHBq71zhCqSbw_WPoBOZNd3YpOMfvMmAE6q6lpS8RdoxTfhc1B5m2-Fs5zwWurs&currency=USD&enable-funding=venmo&disable-funding=paylater"></script>
+  <title>Last Minute Delivery - Express Courier Dispatch</title>  
+
+  <script src="https://www.paypal.com/sdk/js?client-id=BAAeIt0tSR2v42sFNCMRHBq71zhCqSbw_WPoBOZNd3YpOMfvMmAE6q6lpS8RdoxTfhc1B5m2-Fs5zwWurs&enable-funding=venmo&disable-funding=paylater&currency=USD"></script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #0b0c10 !important;
+      color: #e0e6ed;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 540px;
+      background: #12141d;
+      border: 1px solid #1f2333;
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.6);
+    }
+
+    .header {
+      background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+      padding: 32px 20px;
+      text-align: center;
+    }
+
+    .logo-container {
+      width: 96px;
+      height: 96px;
+      margin: 0 auto 14px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+
+    .logo-container img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .header h1 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 4px;
+    }
+
+    .header p {
+      font-size: 0.88rem;
+      color: rgba(255, 255, 255, 0.88);
+      font-weight: 500;
+    }
+
+    .form-body {
+      padding: 28px 24px;
+    }
+
+    .form-section {
+      background: #181b27;
+      border: 1px solid #252a3d;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 22px;
+    }
+
+    .section-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    .step-badge {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(96, 165, 250, 0.3);
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+
+    .fee-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #141724;
+      border: 1px solid #23283b;
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin-top: 14px;
+    }
+
+    .fee-label-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      background-color: #10b981;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+    }
+
+    .fee-label-sub {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin-top: 2px;
+    }
+
+    .fee-amount {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #10b981;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+      position: relative;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 12px 14px;
+      background-color: #0f1118;
+      border: 1px solid #262b3e;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .autocomplete-results {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #181b27;
+      border: 1px solid #252a3d;
+      border-radius: 0 0 8px 8px;
+      max-height: 160px;
+      overflow-y: auto;
+      z-index: 100;
+    }
+
+    .autocomplete-item {
+      padding: 10px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      border-bottom: 1px solid #23283b;
+    }
+
+    .autocomplete-item:hover {
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin: 20px 0;
+      padding: 14px;
+      background: #141724;
+      border: 1px solid #23283b;
+      border-radius: 10px;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      margin-top: 3px;
+      width: 16px;
+      height: 16px;
+      accent-color: #3b82f6;
+    }
+
+    .checkbox-group label {
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      line-height: 1.4;
+      text-transform: none;
+    }
+
+    .checkout-title {
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      color: #94a3b8;
+      margin: 24px 0 14px;
+      text-transform: uppercase;
+    }
+
+    #paypal-button-container {
+      margin-top: 10px;
+      min-height: 45px;
+    }
+
+    .footer-note {
+      text-align: center;
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 18px;
+    }
+  </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+<body>
 
-  <div class="w-full max-w-md bg-slate-800 border border-slate-700/60 rounded-2xl shadow-2xl overflow-hidden my-8">
-    
-    <!-- Header Banner with JPG Logo -->
-    <div class="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-6 text-center relative">
-      <img src="logo.jpg" alt="Last Minute Delivery Logo" class="w-28 h-28 mx-auto rounded-2xl shadow-xl border-2 border-white/20 mb-3 object-cover">
-      <h1 class="text-2xl font-extrabold tracking-tight text-white">Last Minute Delivery</h1>
-      <p class="text-blue-100 text-xs mt-1 font-medium">Las Vegas Express Courier Dispatch</p>
-    </div>
-
-    <!-- Order Fee Summary -->
-    <div class="px-6 pt-5 pb-2">
-      <div class="bg-slate-900/60 border border-slate-700/50 rounded-xl p-3.5 flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></div>
-          <div>
-            <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Service Fee</p>
-            <p class="text-sm font-bold text-slate-200">Express Local Delivery</p>
-          </div>
-        </div>
-        <span class="text-lg font-black text-emerald-400">$10.00</span>
+  <div class="card">
+    <div class="header">
+      <div class="logo-container">
+        <img src="logo.jpg" alt="Last Minute Delivery Logo" />
       </div>
+      <h1>Last Minute Delivery</h1>
+      <p>Las Vegas Express Courier Dispatch</p>
     </div>
 
-    <!-- Delivery Form -->
-    <div class="p-6 space-y-4">
+    <div class="form-body">
       
-      <div id="error-message" class="hidden bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold p-3 rounded-lg text-center">
-        ⚠️ Please complete all required fields and accept the terms before proceeding to payment.
+      <div class="form-section">
+        <div class="section-title">
+          <span class="step-badge">1</span> Package Pricing Tier
+        </div>
+
+        <div class="form-group">
+          <label for="package-size">Select Package Size</label>
+          <select id="package-size" onchange="recalculatePrice()">
+            <option value="15.95">Small (Envelope / Small Box under 10 lbs) - $15.95</option>
+            <option value="25.95">Medium (Medium Box / Multi-item up to 35 lbs) - $25.95</option>
+            <option value="35.95">Large (Heavy / Oversized up to 70 lbs) - $35.95</option>
+          </select>
+        </div>
+
+        <div class="fee-card">
+          <div>
+            <div class="fee-label-title"><span class="dot"></span> ESTIMATED FEE</div>
+            <div class="fee-label-sub" id="fee-description-label">Express Local Delivery (3 mi included)</div>
+          </div>
+          <div class="fee-amount" id="calculated-fee-display">$15.95</div>
+        </div>
+
+        <input type="hidden" id="paypal-amount-input" value="15.95" />
       </div>
 
-      <!-- Part 1: Contact Details -->
-      <div>
-        <label for="fullName" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-          Full Name
-        </label>
-        <input 
-          type="text" 
-          id="fullName" 
-          placeholder="e.g. Jane Doe" 
-          class="w-full bg-slate-900/90 border border-slate-700 text-slate-100 text-sm rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-500"
-          required
-        />
+      <div class="form-section">
+        <div class="section-title">
+          <span class="step-badge">2</span> 📍 Pick-Up Location & Contact
+        </div>
+
+        <div class="form-group">
+          <label for="pickup-name">Pickup Contact Name / Business</label>
+          <input type="text" id="pickup-name" placeholder="e.g. John Smith / MGM Front Desk" required />
+        </div>
+
+        <div class="form-group">
+          <label for="pickup-phone">Pickup Phone Number</label>
+          <input type="tel" id="pickup-phone" placeholder="e.g. (702) 555-0122" required />
+        </div>
+
+        <div class="form-group">
+          <label for="pickup-address">Pickup Address</label>
+          <input type="text" id="pickup-address" placeholder="Type pickup address (e.g. 3570 S Las Vegas Blvd)" oninput="searchAddress('pickup-address', 'pickup-results')" autocomplete="off" required />
+          <div id="pickup-results" class="autocomplete-results"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="pickup-suite">Suite / Unit / Gate Code</label>
+          <input type="text" id="pickup-suite" placeholder="e.g. Ste 100 / Gate #1234" />
+        </div>
+
+        <div class="form-group">
+          <label for="pickup-readiness">Is Item Ready Now?</label>
+          <select id="pickup-readiness">
+            <option value="ready_now">Yes - Ready immediately for courier pickup</option>
+            <option value="ready_at_time">No - Will be ready at scheduled time below</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="pickup-time">Pickup Date & Time</label>
+          <input type="datetime-local" id="pickup-time" required />
+        </div>
       </div>
 
-      <div>
-        <label for="phoneNumber" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-          Phone Number
-        </label>
-        <input 
-          type="tel" 
-          id="phoneNumber" 
-          placeholder="e.g. (702) 555-0199" 
-          class="w-full bg-slate-900/90 border border-slate-700 text-slate-100 text-sm rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-500"
-          required
-        />
+      <div class="form-section">
+        <div class="section-title">
+          <span class="step-badge">3</span> 🏁 Drop-Off Location & Contact
+        </div>
+
+        <div class="form-group">
+          <label for="dropoff-name">Recipient Contact Name</label>
+          <input type="text" id="dropoff-name" placeholder="e.g. Jane Doe" required />
+        </div>
+
+        <div class="form-group">
+          <label for="dropoff-phone">Recipient Phone Number</label>
+          <input type="tel" id="dropoff-phone" placeholder="e.g. (702) 555-0199" required />
+        </div>
+
+        <div class="form-group">
+          <label for="dropoff-address">Drop-Off Address</label>
+          <input type="text" id="dropoff-address" placeholder="Type drop-off address (e.g. 123 Main St)" oninput="searchAddress('dropoff-address', 'dropoff-results')" autocomplete="off" required />
+          <div id="dropoff-results" class="autocomplete-results"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="dropoff-suite">Suite / Apt / Unit #</label>
+          <input type="text" id="dropoff-suite" placeholder="e.g. Apt 4B" />
+        </div>
+
+        <div class="form-group">
+          <label for="dropoff-time">Requested Drop-Off Date & Time</label>
+          <input type="datetime-local" id="dropoff-time" required />
+        </div>
       </div>
 
-      <!-- Part 2: Address Details -->
-      <div>
-        <label for="pickupAddress" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-          Pickup Address
-        </label>
-        <input 
-          type="text" 
-          id="pickupAddress" 
-          placeholder="e.g. 3570 S Las Vegas Blvd, Las Vegas, NV 89109" 
-          class="w-full bg-slate-900/90 border border-slate-700 text-slate-100 text-sm rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-500"
-          required
-        />
+      <div class="form-section">
+        <div class="section-title">
+          <span class="step-badge">4</span> 📦 Package Info & Instructions
+        </div>
+
+        <div class="form-group">
+          <label for="package-description">Package Contents Description</label>
+          <input type="text" id="package-description" placeholder="e.g. Legal documents, keys, spare auto part" required />
+        </div>
+
+        <div class="form-group">
+          <label for="delivery-notes">Special Instructions</label>
+          <textarea id="delivery-notes" placeholder="e.g. Leave with reception, ask for Sarah..."></textarea>
+        </div>
       </div>
 
-      <div>
-        <label for="streetAddress" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-          Drop-Off Address
-        </label>
-        <input 
-          type="text" 
-          id="streetAddress" 
-          placeholder="e.g. 123 Main St, Las Vegas, NV 89101" 
-          class="w-full bg-slate-900/90 border border-slate-700 text-slate-100 text-sm rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-500"
-          required
-        />
-      </div>
-
-      <div>
-        <label for="deliveryTime" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-          Requested Delivery Time
-        </label>
-        <input 
-          type="datetime-local" 
-          id="deliveryTime" 
-          class="w-full bg-slate-900/90 border border-slate-700 text-slate-100 text-sm rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-slate-300"
-          required
-        />
-      </div>
-
-      <!-- Part 3: Package Notes -->
-      <div>
-        <label for="driverNotes" class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-          Driver Notes / Special Instructions
-        </label>
-        <textarea 
-          id="driverNotes" 
-          rows="3" 
-          placeholder="e.g. Leave on the porch, Don't ring the doorbell, call upon arrival..." 
-          class="w-full bg-slate-900/90 border border-slate-700 text-slate-100 text-sm rounded-lg px-3.5 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-500 resize-none"
-        ></textarea>
-      </div>
-
-      <!-- Part 4: Agreement and Complete Payment -->
-      <div class="flex items-start space-x-2.5 text-slate-400 text-xs font-medium pt-1">
-        <input type="checkbox" id="confirmCheckbox" class="mt-0.5 border-slate-600 rounded bg-slate-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900">
-        <label for="confirmCheckbox">
+      <div class="checkbox-group">
+        <input type="checkbox" id="terms-agree" required />
+        <label for="terms-agree">
           I confirm that this package contains no hazardous materials, illegal substances, weapons, or restricted items.
         </label>
       </div>
 
-      <div class="pt-2">
-        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3 text-center">
-          Complete Payment & Dispatch Driver
-        </label>
-        <div id="paypal-button-container" class="min-h-[150px]"></div>
+      <div class="checkout-title">Complete Payment & Dispatch Driver</div>
+      <div id="paypal-button-container"></div>
+
+      <div class="footer-note">
+        🔒 Encrypted Checkout • On-Demand Las Vegas Dispatch
       </div>
 
     </div>
-
-    <!-- Footer -->
-    <div class="bg-slate-900/40 border-t border-slate-700/40 p-3 text-center">
-      <p class="text-[11px] text-slate-500 font-medium">
-        🔒 Encrypted Checkout • On-Demand Las Vegas Dispatch
-      </p>
-    </div>
-
   </div>
 
   <script>
-    paypal.Buttons({
-      // Styles and onClick validation
-      // ...
-      createOrder: function(data, actions) {
-        return actions.order.create({
-          purchase_units: [{
-            amount: {
-              value: '10.00'
-            }
-          }]
-        });
-      },
-      onApprove: function(data, actions) {
-        var customerData = {
-          orderID: data.orderID,
-          customerName: document.getElementById('fullName').value.trim(),
-          customerPhone: document.getElementById('phoneNumber').value.trim(),
-          pickupAddress: document.getElementById('pickupAddress').value.trim(),
-          customerAddress: document.getElementById('streetAddress').value.trim(),
-          deliveryTime: document.getElementById('deliveryTime').value.trim(),
-          deliveryInstruction: document.getElementById('driverNotes').value.trim()
-        };
+    // Address Autocomplete Engine (OpenStreetMap / Nominatim)
+    let debounceTimer;
 
-        return fetch('https://lastminutedelivery.vercel.app/api/capture-order', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(customerData)
-        })
-        .then(function(response) {
-          return response.json();
-        })
-        .then(function(details) {
-          if (details.status === 'COMPLETED' || details.success) {
-            alert('Payment successful! Delivery dispatched via Shipday.');
-            // Add custom success action
-          } else {
-            alert('Payment capture failed. Check console for details.');
-            console.error('Capture Error:', details);
-          }
-        })
-        .catch(function(error) {
-          console.error('Network Error:', error);
-          alert('An error occurred while completing your payment.');
-        });
+    function searchAddress(inputId, resultsId) {
+      clearTimeout(debounceTimer);
+      const query = document.getElementById(inputId).value;
+      const container = document.getElementById(resultsId);
+
+      if (query.length < 3) {
+        container.innerHTML = '';
+        return;
       }
-    }).render('#paypal-button-container');
-  </script>
 
+      debounceTimer = setTimeout(() => {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query + ' Las Vegas')}&limit=4`)
+          .then(res => res.json())
+          .then(data => {
+            container.innerHTML = '';
+            data.forEach(item => {
+              const div = document.createElement('div');
+              div.className = 'autocomplete-item';
+              div.innerText = item.display_name;
+              div.onclick = () => {
+                document.getElementById(inputId).value = item.display_name;
+                container.innerHTML = '';
+              };
+              container.appendChild(div);
+            });
+          })
+          .catch(err => console.error(err));
+      }, 300);
+    }
+
+    function recalculatePrice() {
+      const basePrice = parseFloat(document.getElementById('package-size').value);
+      const finalPrice = basePrice.toFixed(2);
+      document.getElementById('calculated-fee-display').innerText = `$${finalPrice}`;
+      document.getElementById('paypal-amount-input').value = finalPrice;
+    }
+
+    // PayPal Checkout & Shipday Dispatch Handlers
+    if (typeof paypal !== 'undefined') {
+      paypal.Buttons({
+        style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
+
+        onInit: function(data, actions) {
+          actions.disable();
+          document.getElementById('terms-agree').addEventListener('change', function(e) {
+            if (e.target.checked) actions.enable();
+            else actions.disable();
+          });
+        },
+
+        onClick: function() {
+          if (!document.getElementById('terms-agree').checked) {
+            alert("Please check the confirmation box agreeing to prohibited items policy.");
+          }
+        },
+
+        createOrder: function(data, actions) {
+          const currentTotal = document.getElementById('paypal-amount-input').value || "15.95";
+          const pickupName = document.getElementById('pickup-name').value || "Pickup";
+          const dropoffName = document.getElementById('dropoff-name').value || "Dropoff";
+          const pkgDesc = document.getElementById('package-description').value || "Courier Delivery";
+
+          return actions.order.create({
+            purchase_units: [{
+              amount: { currency_code: 'USD', value: currentTotal },
+              description: `Delivery: ${pkgDesc} (${pickupName} -> ${dropoffName})`
+            }]
+          });
+        },
+
+        onApprove: function(data, actions) {
+          return actions.order.capture().then(async function(details) {
+            const capture = details.purchase_units[0].payments.captures[0];
+            const paymentStatus = capture.status;
+
+            const pickupAddress = document.getElementById('pickup-address').value + 
+              (document.getElementById('pickup-suite').value ? ' ' + document.getElementById('pickup-suite').value : '');
+            
+            const dropoffAddress = document.getElementById('dropoff-address').value + 
+              (document.getElementById('dropoff-suite').value ? ' ' + document.getElementById('dropoff-suite').value : '');
+
+            const orderPayload = {
+              orderId: details.id,
+              paymentStatus: paymentStatus,
+              pickup: {
+                name: document.getElementById('pickup-name').value,
+                phone: document.getElementById('pickup-phone').value,
+                address: pickupAddress
+              },
+              dropoff: {
+                name: document.getElementById('dropoff-name').value,
+                phone: document.getElementById('dropoff-phone').value,
+                address: dropoffAddress
+              },
+              packageInfo: {
+                description: document.getElementById('package-description').value,
+                notes: document.getElementById('delivery-notes').value
+              }
+            };
+
+            // Dispatch directly to Shipday Serverless API Route
+            try {
+              await fetch('/api/shipday', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderPayload)
+              });
+            } catch (err) {
+              console.error('Shipday API dispatch error:', err);
+            }
+
+            alert(`Payment Successful! Order #${details.id} processed for ${details.payer.name.given_name}.`);
+          });
+        }
+      }).render('#paypal-button-container');
+    } else {
+      document.getElementById('paypal-button-container').innerHTML = 
+        '<p style="color:#ef4444; font-size:0.8rem; text-align:center;">⚠️ Add your Client ID on line 8 to enable live PayPal checkout.</p>';
+    }
+  </script>
 </body>
 </html>
