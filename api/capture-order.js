@@ -1,6 +1,8 @@
 const axios = require('axios');
+const Shipday = require('shipday/integration');
 
 module.exports = async (req, res) => {
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -33,7 +35,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // 1. Get PayPal Access Token
+    // 1. Authenticate with PayPal
     const auth = Buffer.from(
       `${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`
     ).toString('base64');
@@ -51,7 +53,7 @@ module.exports = async (req, res) => {
 
     const accessToken = tokenResponse.data.access_token;
 
-    // 2. Capture PayPal Order
+    // 2. Capture PayPal Payment
     const captureResponse = await axios({
       url: `https://api-m.paypal.com/v2/checkout/orders/${orderID}/capture`,
       method: 'post',
@@ -63,13 +65,16 @@ module.exports = async (req, res) => {
 
     const paypalDetails = captureResponse.data;
 
-    // 3. Dispatch to Shipday
     if (paypalDetails.status === 'COMPLETED') {
       const capturedAmount = parseFloat(
         paypalDetails.purchase_units[0].payments.captures[0].amount.value
       );
 
-      const shipdayOrder = {
+      // --- 3. DISPATCH VIA SHIPDAY SDK ---
+      const shipdayApiKey = process.env.SHIPDAY_API_KEY || 'Hrcn6bfSIb.NiYWSN3WQYDeGmWEN7aD';
+      const shipdayClient = new Shipday(shipdayApiKey, 10000);
+
+      const shipdayOrderData = {
         orderNumber: orderID,
         customerName: customerName || 'Courier Customer',
         customerEmail: paypalDetails.payer?.email_address || 'customer@example.com',
@@ -89,22 +94,35 @@ module.exports = async (req, res) => {
       };
 
       try {
-        await axios({
-          url: 'https://api.shipday.com/orders',
-          method: 'post',
-          headers: {
-            'Authorization': `Basic ${process.env.SHIPDAY_API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          data: shipdayOrder
-        });
+        await shipdayClient.orderService.insertOrder(shipdayOrderData);
+        console.log('Shipday order created successfully via SDK');
       } catch (shipdayError) {
-        console.error('Shipday API Error:', shipdayError.response ? shipdayError.response.data : shipdayError.message);
-        return res.status(200).json({
-          status: 'COMPLETED',
-          success: true,
-          shipdayError: shipdayError.response ? shipdayError.response.data : shipdayError.message
-        });
+        console.error('Shipday SDK Error:', shipdayError);
+      }
+
+      // --- 4. DISPATCH TO ROUTIFIC ---
+      if (process.env.ROUTIFIC_API_KEY) {
+        const routificPayload = {
+          id: orderID,
+          name: customerName || 'Express Customer',
+          phone: customerPhone || '7025550199',
+          address: customerAddress || 'Las Vegas, NV',
+          notes: `Pickup: ${pickupAddress || 'N/A'} | Items: ${packageDescription || 'Standard Package'} | Instructions: ${deliveryInstruction || 'None'}`
+        };
+
+        try {
+          await axios({
+            url: 'https://api.routific.com/v1/orders',
+            method: 'post',
+            headers: {
+              'Authorization': `Bearer ${process.env.ROUTIFIC_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            data: routificPayload
+          });
+        } catch (routificError) {
+          console.error('Routific Dispatch Warning:', routificError.response ? routificError.response.data : routificError.message);
+        }
       }
 
       return res.status(200).json({
