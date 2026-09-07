@@ -2,7 +2,7 @@ const axios = require('axios');
 const Shipday = require('shipday/integration');
 
 module.exports = async (req, res) => {
-  // CORS Headers
+  // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -11,13 +11,8 @@ module.exports = async (req, res) => {
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const {
     orderID,
@@ -53,7 +48,7 @@ module.exports = async (req, res) => {
 
     const accessToken = tokenResponse.data.access_token;
 
-    // 2. Capture PayPal Payment
+    // 2. Capture PayPal Order
     const captureResponse = await axios({
       url: `https://api-m.paypal.com/v2/checkout/orders/${orderID}/capture`,
       method: 'post',
@@ -70,46 +65,42 @@ module.exports = async (req, res) => {
         paypalDetails.purchase_units[0].payments.captures[0].amount.value
       );
 
-      // --- 3. DISPATCH VIA SHIPDAY SDK ---
-      const shipdayApiKey = process.env.SHIPDAY_API_KEY || 'Hrcn6bfSIb.NiYWSN3WQYDeGmWEN7aD';
-      const shipdayClient = new Shipday(shipdayApiKey, 10000);
+      // Extract delivery date & time strings
+      const datePart = deliveryTime ? deliveryTime.split('T')[0] : '';
+      const timePart = deliveryTime ? deliveryTime.split('T')[1] : '';
 
+      // 3. Format Delivery Order Object according to Shipday schema
       const shipdayOrderData = {
-        orderNumber: orderID,
+        orderNumber: String(orderID),
         customerName: customerName || 'Courier Customer',
         customerEmail: paypalDetails.payer?.email_address || 'customer@example.com',
         customerAddress: customerAddress || 'Las Vegas, NV',
         customerPhoneNumber: customerPhone || '7025550199',
         pickupAddress: pickupAddress || 'Las Vegas, NV',
-        expectedDeliveryDate: deliveryTime ? deliveryTime.split('T')[0] : '',
-        expectedDeliveryTime: deliveryTime ? deliveryTime.split('T')[1] : '',
+        expectedDeliveryDate: datePart,
+        expectedDeliveryTime: timePart,
         deliveryInstruction: deliveryInstruction || '',
         orderItem: [
           {
-            name: packageDescription || 'Last Minute Delivery Express Package',
+            name: packageDescription || 'Last Minute Express Package',
             unitPrice: capturedAmount,
             quantity: 1
           }
         ]
       };
 
+      // Dispatch via official Shipday SDK
+      const shipdayApiKey = process.env.SHIPDAY_API_KEY || 'Hrcn6bfSIb.NiYWSN3WQYDeGmWEN7aD';
+      const shipdayClient = new Shipday(shipdayApiKey, 10000);
+
       try {
         await shipdayClient.orderService.insertOrder(shipdayOrderData);
-        console.log('Shipday order created successfully via SDK');
       } catch (shipdayError) {
         console.error('Shipday SDK Error:', shipdayError);
       }
 
-      // --- 4. DISPATCH TO ROUTIFIC ---
+      // 4. Optional Routific Dispatch
       if (process.env.ROUTIFIC_API_KEY) {
-        const routificPayload = {
-          id: orderID,
-          name: customerName || 'Express Customer',
-          phone: customerPhone || '7025550199',
-          address: customerAddress || 'Las Vegas, NV',
-          notes: `Pickup: ${pickupAddress || 'N/A'} | Items: ${packageDescription || 'Standard Package'} | Instructions: ${deliveryInstruction || 'None'}`
-        };
-
         try {
           await axios({
             url: 'https://api.routific.com/v1/orders',
@@ -118,17 +109,20 @@ module.exports = async (req, res) => {
               'Authorization': `Bearer ${process.env.ROUTIFIC_API_KEY}`,
               'Content-Type': 'application/json'
             },
-            data: routificPayload
+            data: {
+              id: String(orderID),
+              name: customerName || 'Express Customer',
+              phone: customerPhone || '7025550199',
+              address: customerAddress || 'Las Vegas, NV',
+              notes: `Pickup: ${pickupAddress || 'N/A'} | Items: ${packageDescription || 'Standard Package'} | Notes: ${deliveryInstruction || 'None'}`
+            }
           });
-        } catch (routificError) {
-          console.error('Routific Dispatch Warning:', routificError.response ? routificError.response.data : routificError.message);
+        } catch (routificErr) {
+          console.error('Routific Warning:', routificErr.message);
         }
       }
 
-      return res.status(200).json({
-        status: 'COMPLETED',
-        success: true
-      });
+      return res.status(200).json({ status: 'COMPLETED', success: true });
     } else {
       return res.status(400).json({ error: 'PayPal payment was not completed' });
     }
