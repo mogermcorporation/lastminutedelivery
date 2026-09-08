@@ -12,12 +12,16 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'Missing orderNumber query parameter' });
   }
 
+  if (!process.env.SHIPDAY_API_KEY) {
+    return res.status(500).json({ error: 'Fulfillment not configured' });
+  }
+
   try {
     const response = await axios({
       url: `https://api.shipday.com/orders/eta/${orderNumber}`,
       method: 'get',
       headers: {
-        'Authorization': `Basic ${process.env.SHIPDAY_API_KEY || 'Hrcn6bfSIb.NiYWSN3WQYDeGmWEN7aD'}`
+        'Authorization': `Basic ${process.env.SHIPDAY_API_KEY}`
       }
     });
 

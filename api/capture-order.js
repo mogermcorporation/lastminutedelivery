@@ -58,7 +58,11 @@ module.exports = async (req, res) => {
       const capturedAmount = parseFloat(paypalDetails.purchase_units[0].payments.captures[0].amount.value);
 
       // 3. Dispatch to Shipday SDK using Delivery Order Object Mapping
-      const shipdayApiKey = process.env.SHIPDAY_API_KEY || 'Hrcn6bfSIb.NiYWSN3WQYDeGmWEN7aD';
+      const shipdayApiKey = process.env.SHIPDAY_API_KEY;
+      if (!shipdayApiKey) {
+        console.error('SHIPDAY_API_KEY is not configured');
+        return res.status(500).json({ error: 'Fulfillment not configured' });
+      }
       const shipdayClient = new Shipday(shipdayApiKey, 10000);
 
       const shipdayOrderData = {
